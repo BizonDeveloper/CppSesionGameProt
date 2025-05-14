@@ -7,7 +7,7 @@
 #include "TP/Core/MyCustomeContainer.h"
 #include "ItemInteractObject.generated.h"
 
-class ATPGameState;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemInteractSignature, AItemInteractObject*, NewEItemTypes);
 
 UCLASS()
 class TP_API AItemInteractObject : public AInteractObject
@@ -17,27 +17,27 @@ class TP_API AItemInteractObject : public AInteractObject
 public:
 
 	AItemInteractObject();
-
+	FOnItemInteractSignature OnItemInteractSignature;
+	
+	UFUNCTION()
 	void SetItemBody(EMyItemTypes InEMyItemTypes);
-	void InitBody();
 
-	UPROPERTY(EditAnywhere, Category="TP")
-	EMyItemTypes CurrentItemType = EMyItemTypes::Cube;
+	FORCEINLINE EMyItemTypes GetEMyItemType() {return CurrentItemType;}
 
-	protected:
+protected:
 
 	virtual void BeginPlay() override;
 	virtual void Interact(AActor* InteractActor) override;
+
+private:
 	
-	UPROPERTY()
-	TSoftObjectPtr<UStaticMesh> CubeMesh;
+	UPROPERTY(EditAnywhere, Category="TP")
+	EMyItemTypes CurrentItemType = EMyItemTypes::Cube;
 
-	UPROPERTY()
-	TSoftObjectPtr<UStaticMesh> SphereMesh;
+	UPROPERTY(EditAnywhere, Category="TP")
+	TObjectPtr<UDataTable> ItemTable;
 
-	UPROPERTY()
-	TSoftObjectPtr<UStaticMesh> CylinderMesh;
-
-	UPROPERTY()
-	TObjectPtr<ATPGameState> TPGameState;
+	UFUNCTION(BlueprintCallable, Category="TP")
+	void InitBody();
+	
 };

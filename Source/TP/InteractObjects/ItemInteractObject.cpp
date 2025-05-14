@@ -2,30 +2,16 @@
 
 
 #include "TP/InteractObjects/ItemInteractObject.h"
-#include "TP/Core/TPGameState.h"
-#include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
 AItemInteractObject::AItemInteractObject()
 {
-
 	bReplicates = true;
-	
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeAsset(TEXT("/Game/ThirdPerson/Maps/_GENERATED/user/SM_BoxItem"));
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereAsset(TEXT("/Game/ThirdPerson/Maps/_GENERATED/user/SM_Sphere_Item"));
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderAsset(TEXT("/Game/ThirdPerson/Maps/_GENERATED/user/SM_Cilinder_Item"));
 
-	if (CubeAsset.Succeeded())
+	static ConstructorHelpers::FObjectFinder<UDataTable> ItemTableAsset(TEXT("/Game/DT_ItemData"));
+	if (ItemTableAsset.Succeeded())
 	{
-		CubeMesh = CubeAsset.Object;
-	}
-	if (SphereAsset.Succeeded())
-	{
-		SphereMesh = SphereAsset.Object;
-	}
-	if (CylinderAsset.Succeeded())
-	{
-		CylinderMesh = CylinderAsset.Object;
+		ItemTable = ItemTableAsset.Object;
 	}
 }
 
@@ -33,52 +19,59 @@ void AItemInteractObject::SetItemBody(EMyItemTypes InEMyItemTypes)
 {
 	CurrentItemType = InEMyItemTypes;
 	InitBody();
-
-}
-
-void AItemInteractObject::InitBody()
-{
-	if (Body)
-	{
-		switch (CurrentItemType)
-		{
-		case EMyItemTypes::Cube:
-			if (CubeMesh.IsValid()) Body->SetStaticMesh(CubeMesh.Get());
-			break;
-		case EMyItemTypes::Sphere:
-			if (SphereMesh.IsValid()) Body->SetStaticMesh(SphereMesh.Get());
-			break;
-		case EMyItemTypes::Cylinder:
-			if (CylinderMesh.IsValid()) Body->SetStaticMesh(CylinderMesh.Get());
-			break;
-		default:
-			break;
-		}
-	}
 }
 
 void AItemInteractObject::BeginPlay()
 {
 	Super::BeginPlay();
+
+	ensureAlwaysMsgf(ItemTable != nullptr, TEXT("ItemTable is null in %s"), *GetName());
 	
 	if (HasAuthority())
 	{
-		TPGameState = Cast<ATPGameState>(UGameplayStatics::GetGameState(this));
-	
 		InitBody();
 	}
+}
 
+void AItemInteractObject::InitBody()
+{
+	if (!ItemTable || !Body) return;
+
+	FName RowName;
+	
+	switch (CurrentItemType)
+	{
+	case EMyItemTypes::Sphere:
+		RowName = FName("1");
+		break;
+	case EMyItemTypes::Cylinder:
+		RowName = FName("2");
+		break;
+	case EMyItemTypes::Cube:
+		RowName = FName("3");
+		break;
+	default:
+		UE_LOG(LogTemp, Error, TEXT("Unknown item type"));
+		return;
+	}
+
+	const FItemData* Row = ItemTable->FindRow<FItemData>(RowName, TEXT("InitBody"));
+	if (Row && Row->Mesh)
+	{
+		Body->SetStaticMesh(Row->Mesh);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Row not found or Mesh is null for RowName: %s"), *RowName.ToString());
+	}
 }
 
 void AItemInteractObject::Interact(AActor* InteractActor)
 {
 	Super::Interact(InteractActor);
 
-	if (!TPGameState) return;
-	
-	if (CurrentItemType == TPGameState->GetCurrentTargetItemType())
+	if (HasAuthority())
 	{
-		TPGameState->IcrementCurrentItemCount();
-		Destroy();
+		OnItemInteractSignature.Broadcast(this);
 	}
 }

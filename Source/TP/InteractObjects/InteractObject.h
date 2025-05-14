@@ -19,15 +19,15 @@ public:
 	
 	AInteractObject();
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category="TP")
-	TObjectPtr<UStaticMeshComponent> Body;
-	
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "TP")
-	void InteractEvent(AActor* InteractActor);
-
 protected:
 	
 	virtual void BeginPlay() override;
 	virtual void Interact(AActor* InteractActor) override;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "TP")
+	void InteractEvent(AActor* InteractActor);
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category="TP")
+	TObjectPtr<UStaticMeshComponent> Body;
 
 };

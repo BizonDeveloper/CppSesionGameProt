@@ -15,18 +15,21 @@ class TP_API UUserWidget_Win_Lose : public UUserWidget
 
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="WinLose")
-	bool bIsWin;
+	FORCEINLINE bool GetbIsWin(){return bIsWin;}
+	FORCEINLINE void SetbIsWin(bool InBool){ bIsWin = InBool;}
 
 protected:
+	
 	virtual void NativeConstruct() override;
-
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TextBlock_WinLose;
 
 private:
 
 	UFUNCTION()
 	void RemoveSelf();
+
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true), BlueprintReadWrite, Category="WinLose")
+	bool bIsWin;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_WinLose;
 };

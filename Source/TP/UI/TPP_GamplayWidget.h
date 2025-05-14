@@ -18,7 +18,7 @@ protected:
 
 	virtual void NativeConstruct() override;
 
-public:
+private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_ItemName;

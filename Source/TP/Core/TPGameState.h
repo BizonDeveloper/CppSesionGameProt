@@ -12,14 +12,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEItemTypesUpdatedSignature, EMyIt
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCurrentItemCountUpdatedSignature, int32, NewCurrentItemCount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMaxItemCountUpdatedSignature, int32, NewMaxItemCount);
 
+class AItemInteractObject;
+
 UCLASS()
 class TP_API ATPGameState : public AGameStateBase
 {
 	GENERATED_BODY()
 
-
-
 public:
+	
 	ATPGameState();
 	
 	FOnSessionTimeUpdatedSignature OnSessionTimeUpdated;
@@ -27,31 +28,36 @@ public:
 	FOnCurrentItemCountUpdatedSignature OnCurrentItemCountUpdatedSignature;
 	FOnMaxItemCountUpdatedSignature OnMaxItemCountUpdatedSignature;
 	
-	UFUNCTION(BlueprintCallable, Category = "TP|Spawning")
-	void SpawnItemsByRoomTag(FName RoomTag, int32 ItemsPerRoom, TSubclassOf<class AItemInteractObject> ItemClass, EMyItemTypes InItemType);
-	
 	UFUNCTION(BlueprintCallable, Category = "TP")
 	int32 GetSessionTime() const { return SessionTime; }
 	
 	FORCEINLINE void IcrementCurrentItemCount() { CurrentItemCount++;}
 	FORCEINLINE EMyItemTypes GetCurrentTargetItemType() { return EItemTypes;}
 
+protected:
+	
+	virtual void BeginPlay() override;
+
+private:
+
+	void SpawnItemsForAllRooms();
+
+	UFUNCTION(BlueprintCallable, Category = "TP|Spawning")
+	void SpawnItemsByRoomTag(FName RoomTag, int32 ItemsPerRoom, TSubclassOf<class AItemInteractObject> ItemClass, EMyItemTypes InItemType);
+
 	UPROPERTY(EditDefaultsOnly, Category="TP")
 	TSubclassOf<UUserWidget> WinLoseWidgetClass;
 
-protected:
-	virtual void BeginPlay() override;
-	
-	UPROPERTY(ReplicatedUsing = OnRep_SessionTime, BlueprintReadOnly, Category = "TP")
+	UPROPERTY(ReplicatedUsing = OnRep_SessionTime,meta = (AllowPrivateAccess = true), BlueprintReadOnly, Category = "TP")
 	int32 SessionTime;
 
-	UPROPERTY(ReplicatedUsing = OnRep_EMyItemTypes, BlueprintReadOnly, Category = "TP")
+	UPROPERTY(ReplicatedUsing = OnRep_EMyItemTypes,meta = (AllowPrivateAccess = true), BlueprintReadOnly, Category = "TP")
 	EMyItemTypes EItemTypes = EMyItemTypes::Cube;
 	
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentItemCount, BlueprintReadOnly, Category = "TP")
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentItemCount,meta = (AllowPrivateAccess = true), BlueprintReadOnly, Category = "TP")
 	uint8 CurrentItemCount = 0;
 	
-	UPROPERTY(ReplicatedUsing = OnRep_MaxItemCount, BlueprintReadOnly, Category = "TP")
+	UPROPERTY(ReplicatedUsing = OnRep_MaxItemCount,meta = (AllowPrivateAccess = true), BlueprintReadOnly, Category = "TP")
 	uint8 MaxItemCount = 3;
 
 	UFUNCTION(NetMulticast, Reliable)
@@ -59,6 +65,7 @@ protected:
 
 	FTimerHandle TimerHandle_SessionTick;
 	FTimerHandle TimerHandle_RestartLevel;
+	FTimerHandle TimerHandle_BindItems;
 
 	UFUNCTION()
 	void OnRep_SessionTime();
@@ -78,13 +85,18 @@ protected:
 	UFUNCTION()
 	void RestartLevel();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TP")
+	UFUNCTION()
+	void BindItemDelegates();
+
+	UFUNCTION()
+	void ItemInteract(AItemInteractObject* InItemInteractObject);
+
+	UPROPERTY(EditAnywhere,meta = (AllowPrivateAccess = true), BlueprintReadWrite, Category = "TP")
 	uint8 RoomCubesCount = 2;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TP")
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true), BlueprintReadWrite, Category = "TP")
 	uint8 RoomSpheresCount= 2;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TP")
+	UPROPERTY(EditAnywhere,meta = (AllowPrivateAccess = true), BlueprintReadWrite, Category = "TP")
 	uint8 RoomCylindersCount= 2;
-	
 };

@@ -16,7 +16,7 @@ class TP_API ATP_HUD : public AHUD
 protected:
 	virtual void BeginPlay() override;
 
-public:
+private:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UTPP_GamplayWidget> GameplayWidgetClass;
 

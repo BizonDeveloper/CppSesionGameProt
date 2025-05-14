@@ -18,29 +18,37 @@ void ATPGameState::BeginPlay()
 {
 	Super::BeginPlay();
 
-	check(WinLoseWidgetClass);
+	ensureAlwaysMsgf(WinLoseWidgetClass != nullptr, TEXT("WinLoseWidgetClass is null in %s"), *GetName());
 	
 	if (HasAuthority())
 	{
-	
 		MaxItemCount = FMath::RandRange(3, 5);
 		
 		const int32 EnumIndex = FMath::RandRange(0, static_cast<int32>(EMyItemTypes::MAX) - 1);
 		EItemTypes = static_cast<EMyItemTypes>(EnumIndex);
 		
 		GetWorldTimerManager().SetTimer(TimerHandle_SessionTick, this, &ATPGameState::TickSessionTimer, 1.0f, true);
+		GetWorldTimerManager().SetTimer(TimerHandle_BindItems, this, &ATPGameState::BindItemDelegates, 1.0f, false);
+		
+		SpawnItemsForAllRooms();
+	}
+}
 
-		SpawnItemsByRoomTag("1", RoomCubesCount, AItemInteractObject::StaticClass(), EMyItemTypes::Cube);
-		SpawnItemsByRoomTag("1", RoomCylindersCount, AItemInteractObject::StaticClass(), EMyItemTypes::Cylinder);
-		SpawnItemsByRoomTag("1", RoomSpheresCount, AItemInteractObject::StaticClass(), EMyItemTypes::Sphere);
+void ATPGameState::SpawnItemsForAllRooms()
+{
+	TArray<FName> RoomTags = { "1", "2", "3" };
+	TArray<TPair<EMyItemTypes, uint8>> ItemTypesAndCounts = {
+		{ EMyItemTypes::Cube, RoomCubesCount },
+		{ EMyItemTypes::Cylinder, RoomCylindersCount },
+		{ EMyItemTypes::Sphere, RoomSpheresCount }
+	};
 
-		SpawnItemsByRoomTag("2", RoomCubesCount, AItemInteractObject::StaticClass(), EMyItemTypes::Cube);
-		SpawnItemsByRoomTag("2", RoomCylindersCount, AItemInteractObject::StaticClass(), EMyItemTypes::Cylinder);
-		SpawnItemsByRoomTag("2", RoomSpheresCount, AItemInteractObject::StaticClass(), EMyItemTypes::Sphere);
-
-		SpawnItemsByRoomTag("3", RoomCubesCount, AItemInteractObject::StaticClass(), EMyItemTypes::Cube);
-		SpawnItemsByRoomTag("3", RoomCylindersCount, AItemInteractObject::StaticClass(), EMyItemTypes::Cylinder);
-		SpawnItemsByRoomTag("3", RoomSpheresCount, AItemInteractObject::StaticClass(), EMyItemTypes::Sphere);
+	for (const FName& RoomTag : RoomTags)
+	{
+		for (const auto& Pair : ItemTypesAndCounts)
+		{
+			SpawnItemsByRoomTag(RoomTag, Pair.Value, AItemInteractObject::StaticClass(), Pair.Key);
+		}
 	}
 }
 
@@ -88,6 +96,30 @@ void ATPGameState::SpawnItemsByRoomTag(FName RoomTag, int32 ItemsPerRoom,
 	}
 }
 
+void ATPGameState::BindItemDelegates()
+{
+	if (!GetWorld())return;
+	TArray<AActor*> FoundItems;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AItemInteractObject::StaticClass(), FoundItems);
+	
+	for (AActor* Actor : FoundItems)
+	{
+		AItemInteractObject* Item = Cast<AItemInteractObject>(Actor);
+		if (Item)
+		{
+			Item->OnItemInteractSignature.AddDynamic(this, &ATPGameState::ItemInteract);
+		}
+	}
+}
+
+void ATPGameState::ItemInteract(AItemInteractObject* InItemInteractObject)
+{
+	if (InItemInteractObject->GetEMyItemType() == GetCurrentTargetItemType())
+	{
+		IcrementCurrentItemCount();
+		InItemInteractObject->Destroy();
+	}
+}
 
 void ATPGameState::TickSessionTimer()
 {
@@ -148,7 +180,7 @@ void ATPGameState::Multicast_ShowEndGameWidget_Implementation(bool bIsWin)
 			UUserWidget_Win_Lose* WinLoseWidget = CreateWidget<UUserWidget_Win_Lose>(PC, WinLoseWidgetClass);
 			if (WinLoseWidget)
 			{
-				WinLoseWidget->bIsWin = bIsWin;
+				WinLoseWidget->SetbIsWin(bIsWin);
 				WinLoseWidget->AddToViewport();
 			}
 		}

@@ -12,24 +12,27 @@ class TP_API UInteractComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
+	
 	UInteractComponent();
+	void Interact();
 
 protected:
+	
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	void PerformTrace();
-	
+
+private:
+
 	UPROPERTY()
 	TObjectPtr<AActor> CurrentInteractActor = nullptr;
-
-public:
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Interact")
 	float TraceDistance = 200.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Interact")
 	float TraceRadius = 20.f;
 	
-	void Interact();
-		
+	void PerformTrace();
+	
 };
